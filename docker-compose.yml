@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: withdrawal
+      POSTGRES_USER: withdrawal
+      POSTGRES_PASSWORD: withdrawal
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U withdrawal -d withdrawal" ]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: "postgres://withdrawal:withdrawal@postgres:5432/withdrawal?sslmode=disable"
+      SERVER_PORT: "8080"
+      AUTH_TOKEN: "test-secret-token"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
